@@ -1,11 +1,11 @@
-// OSM Scout v0.1.0
+// OSM Scout v0.1.1
 // Responsibility: initialize the map, city search, drawing workflow, Overpass queries,
-// feature rendering, and the initial results summary.
+// feature rendering, interactive tag-value filtering, and the initial results summary.
 
 (() => {
   "use strict";
 
-  const VERSION = "0.1.0";
+  const VERSION = "0.1.1";
   const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
   const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
   const DEFAULT_CENTER = [42.02, -94.05];
@@ -51,6 +51,7 @@
   let selectedArea = null;
   let selectedAreaLabel = "";
   let lastFeatures = [];
+  let activeTagValues = new Set();
 
   if (L.Control.Draw) {
     const drawControl = new L.Control.Draw({
@@ -164,7 +165,7 @@
       }
 
       const place = places[0];
-      const bbox = place.boundingbox.map(Number); // south, north, west, east
+      const bbox = place.boundingbox.map(Number);
       const south = bbox[0];
       const north = bbox[1];
       const west = bbox[2];
@@ -193,6 +194,7 @@
     const key = tagKey.value;
     setBusy(true, "Querying OpenStreetMap…");
     resultsLayer.clearLayers();
+    activeTagValues = new Set();
     output.innerHTML = `<p class="muted">Searching OpenStreetMap for <strong>${escapeHtml(key)}=*</strong>…</p>`;
 
     try {
@@ -211,11 +213,14 @@
       const elements = Array.isArray(data.elements) ? data.elements : [];
       lastFeatures = elements;
 
+      const values = getTagValues(elements, key);
+      activeTagValues = new Set(values.keys());
+
       renderFeatures(elements, key);
-      renderSummary(elements, key);
+      renderSummary(elements, key, values);
 
       if (elements.length) {
-        mapStatus.textContent = `${elements.length.toLocaleString()} ${key}=* feature${elements.length === 1 ? "" : "s"} found.`;
+        mapStatus.textContent = `${elements.length.toLocaleString()} matching OSM features found.`;
       } else {
         mapStatus.textContent = `No ${key}=* features found in the selected area.`;
       }
@@ -247,18 +252,35 @@
     return `${header}${selector}out geom tags;`;
   }
 
+  function getTagValues(elements, key) {
+    const values = new Map();
+
+    elements.forEach(element => {
+      const value = element.tags?.[key] || "(missing value)";
+      values.set(value, (values.get(value) || 0) + 1);
+    });
+
+    return new Map([...values.entries()].sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return String(a[0]).localeCompare(String(b[0]));
+    }));
+  }
+
   function renderFeatures(elements, key) {
     resultsLayer.clearLayers();
 
     const bounds = [];
-    const visibleFeatures = elements.filter(element => getElementPosition(element));
 
-    visibleFeatures.forEach(element => {
+    elements.forEach(element => {
+      const value = element.tags?.[key] || "(missing value)";
+      if (!activeTagValues.has(value)) return;
+
       const position = getElementPosition(element);
-      bounds.push([position.lat, position.lon]);
+      if (!position) return;
 
-      const marker = createFeatureMarker(element, key, position);
-      if (marker) marker.addTo(resultsLayer);
+      bounds.push([position.lat, position.lon]);
+      const layer = createFeatureMarker(element, key, position);
+      if (layer) layer.addTo(resultsLayer);
     });
 
     if (fitResults.checked && bounds.length) {
@@ -273,6 +295,13 @@
 
     if (element.center && Number.isFinite(element.center.lat) && Number.isFinite(element.center.lon)) {
       return { lat: element.center.lat, lon: element.center.lon };
+    }
+
+    if (Array.isArray(element.geometry) && element.geometry.length) {
+      const first = element.geometry[0];
+      if (Number.isFinite(first.lat) && Number.isFinite(first.lon)) {
+        return { lat: first.lat, lon: first.lon };
+      }
     }
 
     return null;
@@ -324,24 +353,15 @@
     return layer;
   }
 
-  function renderSummary(elements, key) {
-    const values = new Map();
-
-    elements.forEach(element => {
-      const value = element.tags?.[key] || "(missing value)";
-      values.set(value, (values.get(value) || 0) + 1);
-    });
-
-    const sortedValues = [...values.entries()].sort((a, b) => b[1] - a[1]);
-    const topValues = sortedValues.slice(0, 20);
-
+  function renderSummary(elements, key, values) {
     const cityText = selectedAreaLabel || "Custom area";
+    const entries = [...values.entries()];
 
     output.innerHTML = `
       <div class="results-summary">
         <div class="summary-card">
-          <span class="summary-label">Total features</span>
-          <span class="summary-value">${elements.length.toLocaleString()}</span>
+          <span class="summary-label">Matching OSM features</span>
+          <span class="summary-value" id="visibleFeatureCount">${elements.length.toLocaleString()}</span>
         </div>
         <div class="summary-card">
           <span class="summary-label">Distinct ${escapeHtml(key)} values</span>
@@ -354,19 +374,83 @@
       </div>
 
       <p class="result-note"><strong>${escapeHtml(key)}=*</strong> results from OpenStreetMap.</p>
-      <p class="result-note">Top tag values:</p>
-      <div class="feature-list">
-        ${topValues.length
-          ? topValues.map(([value, count]) => `
-              <div class="feature-row">
-                <span class="feature-type">${count.toLocaleString()}</span>
-                <span>${escapeHtml(key)}=${escapeHtml(value)}</span>
-              </div>
+
+      <div class="result-toolbar">
+        <span class="result-toolbar-label">Toggle values on the map</span>
+        <div class="result-toolbar-actions">
+          <button type="button" class="filter-button" id="selectAllValues">Select all</button>
+          <button type="button" class="filter-button" id="clearAllValues">Clear all</button>
+        </div>
+      </div>
+
+      <div class="filter-list" id="tagValueFilters">
+        ${entries.length
+          ? entries.map(([value, count], index) => `
+              <label class="filter-row">
+                <input type="checkbox"
+                       data-tag-value="${escapeHtmlAttribute(value)}"
+                       ${activeTagValues.has(value) ? "checked" : ""}
+                       aria-label="Show ${escapeHtml(key)}=${escapeHtml(value)} on map">
+                <span class="filter-value">${escapeHtml(key)}=${escapeHtml(value)}</span>
+                <span class="filter-count">${count.toLocaleString()}</span>
+              </label>
             `).join("")
-          : `<div class="feature-row"><span class="feature-type">0</span><span>No features found.</span></div>`
+          : `<div class="filter-empty">No values found.</div>`
         }
       </div>
+
+      <p class="result-note">Uncheck a value to hide those features from the map. The counts remain the number returned by the search.</p>
     `;
+
+    const filterList = document.getElementById("tagValueFilters");
+    if (filterList) {
+      filterList.querySelectorAll("input[data-tag-value]").forEach(input => {
+        input.addEventListener("change", () => {
+          const value = input.dataset.tagValue;
+          if (input.checked) {
+            activeTagValues.add(value);
+          } else {
+            activeTagValues.delete(value);
+          }
+          renderFeatures(lastFeatures, key);
+          updateVisibleCount();
+        });
+      });
+    }
+
+    document.getElementById("selectAllValues")?.addEventListener("click", () => {
+      activeTagValues = new Set(values.keys());
+      syncFilterCheckboxes();
+      renderFeatures(lastFeatures, key);
+      updateVisibleCount();
+    });
+
+    document.getElementById("clearAllValues")?.addEventListener("click", () => {
+      activeTagValues.clear();
+      syncFilterCheckboxes();
+      renderFeatures(lastFeatures, key);
+      updateVisibleCount();
+    });
+  }
+
+  function syncFilterCheckboxes() {
+    document.querySelectorAll("#tagValueFilters input[data-tag-value]").forEach(input => {
+      input.checked = activeTagValues.has(input.dataset.tagValue);
+    });
+  }
+
+  function updateVisibleCount() {
+    const key = tagKey.value;
+    const count = lastFeatures.reduce((total, element) => {
+      const value = element.tags?.[key] || "(missing value)";
+      return total + (activeTagValues.has(value) ? 1 : 0);
+    }, 0);
+
+    const counter = document.getElementById("visibleFeatureCount");
+    if (counter) counter.textContent = count.toLocaleString();
+
+    const total = lastFeatures.length;
+    mapStatus.textContent = `${count.toLocaleString()} of ${total.toLocaleString()} matching OSM features shown on the map.`;
   }
 
   function clearArea() {
@@ -381,6 +465,7 @@
   function clearResults() {
     resultsLayer.clearLayers();
     lastFeatures = [];
+    activeTagValues.clear();
     output.innerHTML = `
       <div class="empty-state">
         <strong>Ready to Scout</strong>
@@ -419,8 +504,13 @@
     }[ch]));
   }
 
+  function escapeHtmlAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
+  }
+
   window.osmScout = {
     version: VERSION,
-    getLastFeatures: () => lastFeatures
+    getLastFeatures: () => lastFeatures,
+    getActiveTagValues: () => new Set(activeTagValues)
   };
 })();

@@ -1,10 +1,10 @@
 # OSM Scout
 
-**Version 0.1.0**
+**Version 0.1.1**
 
 OSM Scout is an HTML/JavaScript tool for interactively reviewing OpenStreetMap data. The project begins with a simple workflow: select an area, select a primary OSM tag, display matching features on a map, and summarize the results.
 
-## Version 0.1.0
+## Version 0.1.1
 
 The approved 0.1.0 prototype includes:
 
@@ -19,8 +19,9 @@ The approved 0.1.0 prototype includes:
 - Read-only OpenStreetMap feature retrieval through the Overpass API.
 - Feature display on the map.
 - Feature popups with name, selected tag, OSM element type/ID, and an OpenStreetMap link.
+- Interactive tag-value filters below the map, with Select all / Clear all controls.
 - Results summary below the map:
-  - total feature count
+  - matching OSM feature count
   - number of distinct selected-tag values
   - top tag values
 - Responsive layout.

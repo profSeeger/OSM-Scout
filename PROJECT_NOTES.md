@@ -1,6 +1,6 @@
 # OSM Scout Project Notes
 
-**Current version: 0.1.0**
+**Current version: 0.1.1**
 
 This document is the project's persistent institutional memory. Record important decisions, design rationale, research discussions, rejected approaches, and future considerations here so later development sessions can recover context.
 
@@ -59,6 +59,24 @@ Initial primary tags:
 - `shop=*`
 
 The first version does not attempt to identify errors or anomalies. It is a feature exploration and review foundation.
+
+
+## 0.1.1 decisions
+
+The Output / Results panel now acts as an interactive tag-value filter.
+
+For a query such as `building=*`, each unique `building` value is displayed with:
+- a checkbox
+- the tag value
+- the number of returned matching features
+
+All values are initially selected. Toggling a value immediately hides/shows those features on the map.
+
+The results summary distinguishes:
+- **Matching OSM features**: all features returned by the current query.
+- **Currently shown on the map**: the subset remaining after tag-value filters are applied.
+
+The application does not interpret the count as all OSM features in the area. It is limited to elements matching the selected primary tag.
 
 ## Data services
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.1] - 2026-09-09
+
+### Added
+- Interactive tag-value filters in the Output / Results panel.
+- Select all and Clear all controls for returned tag values.
+- Map visibility updates immediately when a tag value is toggled.
+- Visible-feature count updates as tag values are toggled.
+- Clearer "Matching OSM features" terminology to distinguish search results from all OSM data.
+
+### Changed
+- Results now retain the full query result count while separately reporting how many matching features are currently shown on the map.
+- Returned OSM geometries continue to be used for mapped ways where available.
+
+
+
 All notable OSM Scout changes are documented here.
 
 ## [0.1.0] - 2026-09-09

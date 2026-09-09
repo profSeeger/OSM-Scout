@@ -1,4 +1,4 @@
-/* OSM Scout v0.1.0 */
+/* OSM Scout v0.1.1 */
 /* Responsibility: application layout, responsive styling, controls, and map/result presentation. */
 
 :root {
@@ -492,4 +492,86 @@ select {
   .workspace { padding: 8px; gap: 8px; }
   .site-footer { flex-direction: column; }
   .results-summary { grid-template-columns: 1fr; }
+}
+
+
+/* OSM Scout v0.1.1 — interactive tag-value filter controls */
+.result-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0 8px;
+}
+
+.result-toolbar-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.result-toolbar-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  width: auto;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 11px;
+  background: #f5f8f8;
+  border: 1px solid #b8c7cc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.filter-button:hover { background: white; }
+
+.filter-list {
+  max-height: 210px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 68px;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 5px 9px;
+  border-bottom: 1px solid #e3e8e9;
+  cursor: pointer;
+}
+
+.filter-row:last-child { border-bottom: 0; }
+.filter-row:hover { background: #f5f8f8; }
+
+.filter-row input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+}
+
+.filter-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.filter-count {
+  text-align: right;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.filter-empty {
+  padding: 12px;
+  color: var(--muted);
+  font-size: 12px;
 }

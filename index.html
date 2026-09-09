@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- OSM Scout v0.1.0 -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="application-version" content="0.1.0">
+  <title>OSM Scout — v0.1.0</title>
+
+  <!-- Leaflet 1.9.4: map display -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Leaflet Draw 1.0.4: user-drawn review areas -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="osmScoutApp">
+    <header class="site-header">
+      <div class="header-art" aria-hidden="true">
+        <div class="mountain m1"></div>
+        <div class="mountain m2"></div>
+        <div class="tree t1"></div>
+        <div class="tree t2"></div>
+        <div class="tree t3"></div>
+      </div>
+
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">⌖</div>
+        <div>
+          <h1>OSM Scout</h1>
+          <p>EXPLORE · REVIEW · IMPROVE</p>
+          <div class="byline">OpenStreetMap Data Reviewer</div>
+        </div>
+      </div>
+
+      <div class="version-badge" aria-label="Application version">
+        <span>Version</span>
+        <strong data-version>v0.1.0</strong>
+      </div>
+
+      <div class="header-tagline">Better Data. Stronger Communities.</div>
+    </header>
+
+    <main class="workspace">
+      <aside class="actions-panel" aria-label="Actions and controls">
+        <div class="panel-title">
+          <span aria-hidden="true">⚙</span>
+          <h2>Actions &amp; Controls</h2>
+        </div>
+
+        <section class="control-section">
+          <h3>1. Select Area of Interest</h3>
+          <label for="cityName">City name</label>
+          <div class="city-search">
+            <input id="cityName" type="text" placeholder="Type city name..." autocomplete="off">
+            <button type="button" id="citySearchButton" title="Find city">⌕</button>
+          </div>
+          <p class="help-text">Press Enter or select the search button.</p>
+
+          <div class="or">— or —</div>
+
+          <button type="button" class="secondary" id="drawAreaButton">
+            ⌗ &nbsp; Draw a custom area
+          </button>
+
+          <button type="button" class="secondary hidden" id="clearAreaButton">
+            × &nbsp; Clear drawn area
+          </button>
+
+          <div class="selection-status" id="areaStatus" aria-live="polite">
+            No area selected.
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h3>2. Select Features / Tags</h3>
+          <label for="tagKey">Primary tag</label>
+          <select id="tagKey">
+            <option value="amenity">amenity=*</option>
+            <option value="building">building=*</option>
+            <option value="shop">shop=*</option>
+          </select>
+          <p class="help-text" id="tagDescription">
+            Public and commercial facilities such as restaurants, schools, and parking.
+          </p>
+        </section>
+
+        <section class="accordion">
+          <button type="button" aria-expanded="false" aria-controls="displayOptions">
+            3. Display Options <span>⌄</span>
+          </button>
+          <div class="accordion-content" id="displayOptions">
+            <label class="check-row">
+              <input type="checkbox" id="fitResults" checked>
+              <span>Fit map to results</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="accordion">
+          <button type="button" aria-expanded="false" aria-controls="analysisOptions">
+            4. Analysis Options <span>⌄</span>
+          </button>
+          <div class="accordion-content" id="analysisOptions">
+            <p>Additional review rules will be added in a later release.</p>
+          </div>
+        </section>
+
+        <section class="accordion">
+          <button type="button" aria-expanded="false" aria-controls="actionsOptions">
+            5. Actions <span>▶</span>
+          </button>
+          <div class="accordion-content" id="actionsOptions">
+            <button type="button" class="small-action" id="clearResultsButton">Clear results</button>
+          </div>
+        </section>
+
+        <button type="button" class="run-button" id="runSearch">⌕ &nbsp; Run Search</button>
+
+        <div class="service-note">
+          <strong>Data services</strong>
+          <span>Uses OpenStreetMap and the Overpass API for read-only feature queries.</span>
+        </div>
+      </aside>
+
+      <section class="right-column">
+        <section class="map-frame">
+          <div class="frame-header">
+            <h2>▣ &nbsp; Map View</h2>
+            <div class="frame-tools" aria-hidden="true">▱ &nbsp; ⛶</div>
+          </div>
+          <div id="map" class="map-view" aria-label="OpenStreetMap map"></div>
+          <div class="map-status" id="mapStatus" aria-live="polite">Choose a city or draw an area to begin.</div>
+        </section>
+
+        <section class="output-frame">
+          <div class="frame-header">
+            <h2>▤ &nbsp; Output / Results</h2>
+            <div class="frame-tools" aria-hidden="true">⛶</div>
+          </div>
+          <div class="output-content" id="output" aria-live="polite">
+            <div class="empty-state">
+              <strong>Ready to Scout</strong>
+              <p>Choose a city or draw an area, select a primary tag, and run a search.</p>
+              <p class="muted">The results summary will appear here below the map.</p>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>OSM Scout <b data-version>v0.1.0</b> &nbsp;|&nbsp; Better Data. Stronger Communities.</span>
+      <span>About &nbsp; | &nbsp; Help &nbsp; | &nbsp; GitHub</span>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
